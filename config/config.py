@@ -117,6 +117,9 @@ class Config:
         self.mask_label_id = -1
 
         self.eval_epoch = args.eval_epoch
+        self.epoch_k = args.epoch_k
+
+        self.model_folder = args.model_folder
 
 
         self.interaction_func = InteractionFunction[args.inter_func] ## 0:concat, 1: addition, 2:gcn
@@ -160,7 +163,7 @@ class Config:
         return embedding, embedding_dim
 
 
-    def build_word_idx(self, train_insts, dev_insts, test_insts):
+    def build_word_idx(self, train_insts):
         self.word2idx = dict()
         self.idx2word = []
         self.word2idx[self.PAD] = 0
@@ -178,7 +181,7 @@ class Config:
         self.idx2char.append(self.UNK)
 
         ##extract char on train, dev, test
-        for inst in train_insts + dev_insts + test_insts:
+        for inst in train_insts:
             for word in inst.input.words:
                 if word not in self.word2idx:
                     self.word2idx[word] = len(self.word2idx)
