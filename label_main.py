@@ -10,7 +10,7 @@ from config.config import Config, ContextEmb, DepModelType
 import time
 from model.lstmcrf import NNCRF
 from model.simple_gcn import GCN
-from model.gcn_scratch import DepLabeledGCN
+from model.gcn_scratch import SimpleGCN
 import torch
 import torch.optim as optim
 import torch.nn as nn
@@ -24,6 +24,7 @@ import pickle
 from sklearn.manifold import TSNE
 from typing import List
 from visualize.tsne import tsne_plot_2d
+import tarfile
 
 
 
@@ -121,7 +122,7 @@ def batching_list_instances(config: Config, insts:List[Instance]):
 
 def learn_from_insts(config:Config, epoch: int, train_insts):
     # train_insts: List[Instance], dev_insts: List[Instance], test_insts: List[Instance], batch_size: int = 1
-    model = DepLabeledGCN(config)
+    model = SimpleGCN(config)
     optimizer = get_optimizer(config, model)
     train_num = len(train_insts)
     print("number of instances: %d" % (train_num))
@@ -174,7 +175,8 @@ def learn_from_insts(config:Config, epoch: int, train_insts):
             f = open(config_path, 'wb')
             pickle.dump(config, f)
             f.close()
-
+            with tarfile.open(f"model_files/{model_folder}/{model_folder}.tar.gz", "w:gz") as tar:
+                tar.add(f"model_files/{model_folder}", arcname=os.path.basename(model_folder))
             ## draw and see the embeddings
             # tsne_ak_2d = TSNE(perplexity=30, n_components=2, init='pca', n_iter=3500, random_state=32)
             # embeddings = model.dep_emb.weight.detach().numpy()
@@ -182,8 +184,11 @@ def learn_from_insts(config:Config, epoch: int, train_insts):
             # embeddings = tsne_ak_2d.fit_transform(embeddings)
             # tsne_plot_2d('Relation embedding', embeddings, a= 0.1, words= config.deplabels, file_name=str(i))
 
-    model.load_state_dict(torch.load(model_path))
-    model.eval()
+    print("Archiving the last Model...")
+    with tarfile.open(f"model_files/{model_folder}/{model_folder}.tar.gz", "w:gz") as tar:
+        tar.add(f"model_files/{model_folder}", arcname=os.path.basename(model_folder))
+
+    print("Finished archiving the models")
 
 
 def main():
@@ -195,17 +200,13 @@ def main():
     setSeed(opt, conf.seed)
 
     trains = reader.read_conll(conf.train_file, -1, True)
+    devs = reader.read_conll(conf.dev_file, conf.dev_num, False)
+    tests = reader.read_conll(conf.test_file, conf.test_num, False)
 
-    if conf.context_emb != ContextEmb.none:
-        print('Loading the {} vectors for all datasets.'.format(conf.context_emb.name))
-        conf.context_emb_size = reader.load_elmo_vec(conf.train_file.replace(".sd", "").replace(".ud", "").replace(".sud", "").replace(".predsd", "").replace(".predud", "").replace(".stud", "").replace(".ssd", "") + "."+conf.context_emb.name+".vec", trains)
-        reader.load_elmo_vec(conf.dev_file.replace(".sd", "").replace(".ud", "").replace(".sud", "").replace(".predsd", "").replace(".predud", "").replace(".stud", "").replace(".ssd", "")  + "."+conf.context_emb.name+".vec", devs)
-        reader.load_elmo_vec(conf.test_file.replace(".sd", "").replace(".ud", "").replace(".sud", "").replace(".predsd", "").replace(".predud", "").replace(".stud", "").replace(".ssd", "")  + "."+conf.context_emb.name+".vec", tests)
-
-    conf.use_iobes(trains )
+    conf.use_iobes(trains)
     conf.build_label_idx(trains)
 
-    conf.build_deplabel_idx(trains)
+    conf.build_deplabel_idx(trains + devs + tests)
     print("# deplabels: ", len(conf.deplabels))
     print("dep label 2idx: ", conf.deplabel2idx)
 

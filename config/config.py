@@ -117,13 +117,14 @@ class Config:
         self.mask_label_id = -1
 
         self.eval_epoch = args.eval_epoch
-        self.epoch_k = args.epoch_k
+        self.epoch_k = args.epoch_k if "epoch_k" in args.__dict__ else 0
 
-        self.model_folder = args.model_folder
+        self.model_folder = args.model_folder if "model_folder" in args.__dict__ else "none"
 
 
         self.interaction_func = InteractionFunction[args.inter_func] ## 0:concat, 1: addition, 2:gcn
-
+        self.pretrain_dep = args.pretrained_dep if "pretrained_dep" in args.__dict__ else 0
+        self.freeze = args.freeze if "freeze" in args.__dict__ else 0
 
     # def print(self):
     #     print("")

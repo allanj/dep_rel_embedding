@@ -14,7 +14,7 @@ import torch.nn.functional as F
 
 class NNCRF(nn.Module):
 
-    def __init__(self, config):
+    def __init__(self, config, pretrained_dep_model:nn.Module = None):
         super(NNCRF, self).__init__()
 
         self.label_size = config.label_size
@@ -99,7 +99,15 @@ class NNCRF(nn.Module):
         print("[Model Info] Dep Method: {}, hidden size: {}".format(self.dep_model.name, config.dep_hidden_dim))
         if self.dep_model != DepModelType.none:
             print("Initializing the dependency label embedding")
-            self.dep_label_embedding = nn.Embedding(len(config.deplabel2idx), config.dep_emb_size).to(self.device)
+            self.pretrain_dep = config.pretrain_dep
+            if config.pretrain_dep:
+                self.dep_label_embedding = pretrained_dep_model
+                self.dep_label_embedding.train()
+                if config.freeze:
+                    for param in self.dep_label_embedding.parameters():
+                        param.requires_grad = False
+            else:
+                self.dep_label_embedding = nn.Embedding(len(config.deplabel2idx), config.dep_emb_size).to(self.device)
             if self.dep_model == DepModelType.dggcn:
                 self.gcn = DepLabeledGCN(config, config.hidden_dim)  ### lstm hidden size
                 final_hidden_dim = config.dep_hidden_dim
@@ -149,7 +157,10 @@ class NNCRF(nn.Module):
           Word Representation
         """
         if self.dep_model == DepModelType.dglstm:
-            dep_emb = self.dep_label_embedding(dep_label_tensor)
+            if self.pretrain_dep:
+                dep_emb = self.dep_label_embedding.inference(adj_matrixs, dep_label_tensor)
+            else:
+                dep_emb = self.dep_label_embedding(dep_label_tensor)
             word_emb = torch.cat((word_emb, dep_head_emb, dep_emb), 2)
 
         word_rep = self.word_drop(word_emb)

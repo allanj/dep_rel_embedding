@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 
 
-class DepLabeledGCN(nn.Module):
+class SimpleGCN(nn.Module):
     def __init__(self, config):
         super().__init__()
 
@@ -42,27 +42,29 @@ class DepLabeledGCN(nn.Module):
 
         self.scorer = nn.Linear(config.dep_hidden_dim, len(config.deplabels)).to(self.device)
 
-    def forward(self, adj_matrix, gcn_inputs):
-
+    def inference(self, adj_matrix, gcn_inputs):
         """
 
         :param gcn_inputs:
         :param word_seq_len:
         :param adj_matrix: should already contain the self loop
         :param dep_label_matrix:
-        :return:
+        :return: representation
         """
         adj_matrix = adj_matrix.to(self.device)
         denom = adj_matrix.sum(2).unsqueeze(2) + 1
         gcn_inputs = self.dep_emb(gcn_inputs)  ## B
         for l in range(self.layers):
             Ax = adj_matrix.bmm(gcn_inputs)  ## N x N  times N x h  = Nxh
-            AxW = self.W[l](Ax)   ## N x m
+            AxW = self.W[l](Ax)  ## N x m
             AxW = AxW + self.W[l](gcn_inputs)  ## self loop  N x h
             AxW = AxW / denom
             gAxW = F.relu(AxW)
             gcn_inputs = self.gcn_drop(gAxW)
+        return gcn_inputs
 
+    def forward(self, adj_matrix, gcn_inputs):
+        gcn_inputs = self.inference(adj_matrix, gcn_inputs)
         output = self.scorer(gcn_inputs)
         return output
 
