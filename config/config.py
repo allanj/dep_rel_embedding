@@ -119,7 +119,7 @@ class Config:
         self.eval_epoch = args.eval_epoch
         self.epoch_k = args.epoch_k if "epoch_k" in args.__dict__ else 0
 
-        self.model_folder = args.model_folder if "model_folder" in args.__dict__ else "none"
+        self.model_folder = args.model_folder
 
 
         self.interaction_func = InteractionFunction[args.inter_func] ## 0:concat, 1: addition, 2:gcn

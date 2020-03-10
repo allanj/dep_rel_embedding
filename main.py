@@ -16,6 +16,7 @@ from common.instance import Instance
 from termcolor import colored
 import os
 from predictor import Predictor
+import tarfile
 
 def setSeed(opt, seed):
     random.seed(seed)
@@ -50,6 +51,8 @@ def parse_arguments(parser):
     parser.add_argument('--test_num', type=int, default=-1)
     parser.add_argument('--eval_freq', type=int, default=4000, help="evaluate frequency (iteration)")
     parser.add_argument('--eval_epoch', type=int, default=0, help="evaluate the dev set after this number of epoch")
+
+    parser.add_argument('--model_folder', type=str, default="english_ner", help="The name to save the model files")
 
     ## model hyperparameter
     parser.add_argument('--hidden_dim', type=int, default=200, help="hidden size of the LSTM")
@@ -133,13 +136,14 @@ def learn_from_insts(config:Config, epoch: int, train_insts, dev_insts, test_ins
     if config.dep_model == DepModelType.dggcn:
         dep_model_name += '(' + str(config.num_gcn_layers) + "," + str(config.gcn_dropout) + "," + str(
             config.gcn_mlp_layers) + ")"
-    model_name = "model_files/lstm_{}_{}_crf_{}_{}_{}_dep_{}_elmo_{}_{}_gate_{}_epoch_{}_lr_{}_comb_{}.m".format(config.num_lstm_layer, config.hidden_dim, config.dataset, config.affix, config.train_num, dep_model_name, config.context_emb.name, config.optimizer.lower(), config.edge_gate, epoch, config.learning_rate, config.interaction_func)
-    res_name = "results/lstm_{}_{}_crf_{}_{}_{}_dep_{}_elmo_{}_{}_gate_{}_epoch_{}_lr_{}_comb_{}.results".format(config.num_lstm_layer, config.hidden_dim, config.dataset, config.affix, config.train_num, dep_model_name, config.context_emb.name, config.optimizer.lower(), config.edge_gate, epoch, config.learning_rate, config.interaction_func)
-    print("[Info] The model will be saved to: %s, please ensure models folder exist" % (model_name))
-    if not os.path.exists("model_files"):
-        os.makedirs("model_files")
-    if not os.path.exists("results"):
-        os.makedirs("results")
+    model_folder = config.model_folder
+    res_folder = "results"
+    model_path = f"model_files/{model_folder}/gnn.pt"
+    config_path = f"model_files/{model_folder}/config.conf"
+    res_path = f"{res_folder}/{model_folder}.res"
+    os.makedirs(f"model_files/{model_folder}", exist_ok=True)  ## create model files. not raise error if exist
+    os.makedirs(res_folder, exist_ok=True)
+    print(f"[Info] The model will be saved to the directory: model_files/{model_folder}")
 
     for i in range(1, epoch + 1):
         epoch_loss = 0
@@ -172,17 +176,22 @@ def learn_from_insts(config:Config, epoch: int, train_insts, dev_insts, test_ins
                 best_dev[1] = i
                 best_test[0] = test_metrics[2]
                 best_test[1] = i
-                torch.save(model.state_dict(), model_name)
-                write_results(res_name, test_insts)
+                torch.save(model.state_dict(), model_path)
+                write_results(res_path, test_insts)
             model.zero_grad()
+
+    print("Archiving the best Model...")
+    with tarfile.open(f"model_files/{model_folder}/{model_folder}.tar.gz", "w:gz") as tar:
+        tar.add(f"model_files/{model_folder}", arcname=os.path.basename(model_folder))
+    print("Finished archiving the models")
 
     print("The best dev: %.2f" % (best_dev[0]))
     print("The corresponding test: %.2f" % (best_test[0]))
     print("Final testing.")
-    model.load_state_dict(torch.load(model_name))
+    model.load_state_dict(torch.load(model_path))
     model.eval()
     evaluate(config, model, test_batches, "test", test_insts)
-    write_results(res_name, test_insts)
+    write_results(res_path, test_insts)
 
 
 

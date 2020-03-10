@@ -194,7 +194,7 @@ def preprocess(conf, insts, file_type:str):
                             inst.input.dep_labels[i] = "nn" if "sd" in conf.affix else "compound"
 
 
-def mask_relations(mask_relations: torch.Tensor, probability:float, config, ignored_index = -100, word_seq_len: torch.Tensor = None) -> Tuple[torch.Tensor, torch.Tensor]:
+def mask_relations(mask_relations: torch.Tensor, probability:float, config, ignored_index = -100, word_seq_len: torch.Tensor = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     inputs = mask_relations
     output = inputs.clone()
     probability_matrix = torch.full(output.size(), probability)
@@ -207,4 +207,4 @@ def mask_relations(mask_relations: torch.Tensor, probability:float, config, igno
     indices_replaced = torch.bernoulli(torch.full(output.size(), 1.0)).bool() & masked_indices
     inputs[indices_replaced] = config.mask_label_id
 
-    return inputs, output
+    return inputs, output, masked_indices

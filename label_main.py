@@ -147,12 +147,24 @@ def learn_from_insts(config:Config, epoch: int, train_insts):
 
         if config.optimizer.lower() == "sgd":
             optimizer = lr_decay(config, optimizer, i)
+        p = 0
+        total = 0
         for index in np.random.permutation(len(batched_data)):
         # for index in range(len(batched_data)):
             model.train()
             batch_word, batch_word_len, batch_context_emb, batch_char, batch_charlen, adj_matrixs, adjs_in, adjs_out, graphs, dep_label_adj, batch_dep_heads, trees, batch_label, batch_dep_label = batched_data[index]
-            input, output =  mask_relations(batch_dep_label.clone(), probability=0.15, config=config, ignored_index=ignored_index, word_seq_len=batch_word_len)
+            input, output, masked_index =  mask_relations(batch_dep_label.clone(), probability=0.15, config=config, ignored_index=ignored_index, word_seq_len=batch_word_len)
             logits = model(adj_matrixs, input) ## (batch_size, sent_len, score)
+
+            ## calculating the accuracy
+            max_index = logits.cpu().detach().numpy().argmax(axis=2)
+            max_index[~masked_index] = ignored_index
+            batch_size = max_index.shape[0]
+            for idx in range(batch_size):
+                max_index[idx, batch_word_len[idx]:] = ignored_index
+            output_res = output.cpu().detach().numpy()
+            p += np.sum(output_res[output_res!=ignored_index] == max_index[max_index!=ignored_index])
+            total += len(output_res[output_res!=ignored_index])
 
             # output: shape(batch_size, sent_len)
             loss = loss_fcn(logits.view(-1, len(config.deplabels)), output.view(-1))
@@ -164,7 +176,7 @@ def learn_from_insts(config:Config, epoch: int, train_insts):
             model.zero_grad()
 
         end_time = time.time()
-        print("Epoch %d: %.5f, Time is %.2fs" % (i, epoch_loss, end_time - start_time), flush=True)
+        print(f"Epoch {i}: {epoch_loss:.5f}, Acc: {p*1.0/total*100:.2f}, Time is {end_time-start_time:.2f}s", flush=True)
 
         if i % config.epoch_k == 0:
             """
