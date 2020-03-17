@@ -64,7 +64,7 @@ def simple_batching(config, insts: List[Instance]):
     trees = None
     graphs = None
     if config.dep_model != DepModelType.none:
-        if  config.dep_model == DepModelType.dggcn:
+        if  config.dep_model == DepModelType.dggcn or config.dep_model == DepModelType.dglstm:
             adjs = [ head_to_adj(max_seq_len, inst, config) for inst in batch_data]
             adjs = np.stack(adjs, axis=0)
             adjs = torch.from_numpy(adjs)

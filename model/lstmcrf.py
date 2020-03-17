@@ -108,6 +108,7 @@ class NNCRF(nn.Module):
                         param.requires_grad = False
             else:
                 self.dep_label_embedding = nn.Embedding(len(config.deplabel2idx), config.dep_emb_size).to(self.device)
+                self.dep_label_embedding.weight.requires_grad = True if config.freeze else False
             if self.dep_model == DepModelType.dggcn:
                 self.gcn = DepLabeledGCN(config, config.hidden_dim)  ### lstm hidden size
                 final_hidden_dim = config.dep_hidden_dim

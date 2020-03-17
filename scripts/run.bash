@@ -1,8 +1,8 @@
 #!/bin/bash
 
 datasets=(catalan spanish)
-num_epochs_all=(500)
-devices=(cuda:1)   ##cpu, cuda:0, cuda:1
+num_epochs_all=(500 500)
+devices=(cuda:1 cuda:1)   ##cpu, cuda:0, cuda:1
 dep_model=dggcn  ## for pretrainning
 batch_size=32
 
