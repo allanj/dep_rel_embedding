@@ -119,18 +119,24 @@ def head_to_adj(max_len, inst, config):
     """
     directed = config.adj_directed
     self_loop = False #config.adj_self_loop
+    max_len = 2 * max_len if config.complete_tree else max_len
     ret = np.zeros((max_len, max_len), dtype=np.float32)
 
-    for i, head in enumerate(inst.input.heads):
+    for i, (head, dep_label) in enumerate(zip(inst.input.heads, inst.input.dep_labels)):
         if head == -1:
             continue
-        ret[head, i] = 1
+        if config.complete_tree:
+            ret[i+1, i] = 1
+            ret[head*2, 2*i+1] = 1
+        else:
+            ret[head, i] = 1
 
     if not directed:
         ret = ret + ret.T
 
     if self_loop:
-        for i in range(len(inst.input.words)):
+        loop_len = 2 * len(inst.input.words) if config.complete_tree else len(inst.input.words)
+        for i in range(loop_len):
             ret[i, i] = 1
 
     return ret

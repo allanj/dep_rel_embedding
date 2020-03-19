@@ -47,7 +47,7 @@ def parse_arguments(parser):
     parser.add_argument('--digit2zero', action="store_true", default=True)
     parser.add_argument('--dataset', type=str, default="conll2003")
     parser.add_argument('--affix', type=str, default="sd")
-    parser.add_argument('--embedding_file', type=str, default="data/glove.6B.10xx0d.txt")
+    parser.add_argument('--embedding_file', type=str, default="data/glove.6B.100d.txt")
     # parser.add_argument('--embedding_file', type=str, default=None)
     parser.add_argument('--embedding_dim', type=int, default=100)
     parser.add_argument('--optimizer', type=str, default="adam")
@@ -69,11 +69,11 @@ def parse_arguments(parser):
     ## model hyperparameter
     parser.add_argument('--hidden_dim', type=int, default=200, help="hidden size of the LSTM")
     parser.add_argument('--num_lstm_layer', type=int, default=1, help="number of lstm layers")
-    parser.add_argument('--dep_emb_size', type=int, default=50, help="embedding size of dependency")
+    parser.add_argument('--dep_emb_size', type=int, default=100, help="embedding size of dependency")
     parser.add_argument('--dep_hidden_dim', type=int, default=200, help="hidden size of gcn, tree lstm")
 
     ### NOTE: GCN parameters, useless if we are not using GCN
-    parser.add_argument('--num_gcn_layers', type=int, default=5, help="number of gcn layers")
+    parser.add_argument('--num_gcn_layers', type=int, default=2, help="number of gcn layers")
     parser.add_argument('--gcn_mlp_layers', type=int, default=1, help="number of mlp layers after gcn")
     parser.add_argument('--gcn_dropout', type=float, default=0.5, help="GCN dropout")
     parser.add_argument('--gcn_adj_directed', type=int, default=0, choices=[0, 1], help="GCN ajacent matrix directed")
@@ -88,7 +88,8 @@ def parse_arguments(parser):
     parser.add_argument('--inter_func', type=str, default="mlp", choices=["concatenation", "addition",  "mlp"], help="combination method, 0 concat, 1 additon, 2 gcn, 3 more parameter gcn")
     parser.add_argument('--context_emb', type=str, default="none", choices=["none", "bert", "elmo", "flair"], help="contextual word embedding")
 
-
+    ## NOTE: GCN related
+    parser.add_argument('--complete_tree', type=int, default=1, choices=[0,1], help="use levi graph or not")
 
 
     args = parser.parse_args()
@@ -154,7 +155,9 @@ def learn_from_insts(config:Config, epoch: int, train_insts):
             model.train()
             batch_word, batch_word_len, batch_context_emb, batch_char, batch_charlen, adj_matrixs, adjs_in, adjs_out, graphs, dep_label_adj, batch_dep_heads, trees, batch_label, batch_dep_label = batched_data[index]
             input, output, masked_index =  mask_relations(batch_dep_label.clone(), probability=0.15, config=config, ignored_index=ignored_index, word_seq_len=batch_word_len)
-            logits = model(adj_matrixs, input) ## (batch_size, sent_len, score)
+            adj_matrixs = adj_matrixs.to(config.device)
+            batch_word = batch_word if config.complete_tree else None
+            logits = model(adj_matrixs, input, batch_word) ## (batch_size, sent_len, score)
 
             ## calculating the accuracy
             max_index = logits.cpu().detach().numpy().argmax(axis=2)
@@ -223,7 +226,7 @@ def main():
     print("dep label 2idx: ", conf.deplabel2idx)
 
 
-    conf.build_word_idx(trains)
+    conf.build_word_idx(trains+devs+tests)
     conf.build_emb_table()
     conf.map_insts_ids(trains)
 

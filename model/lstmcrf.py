@@ -101,7 +101,7 @@ class NNCRF(nn.Module):
             print("Initializing the dependency label embedding")
             self.pretrain_dep = config.pretrain_dep
             if config.pretrain_dep:
-                self.dep_label_embedding = pretrained_dep_model
+                self.dep_label_embedding = pretrained_dep_model.to(self.device)
                 self.dep_label_embedding.train()
                 if config.freeze:
                     for param in self.dep_label_embedding.parameters():
@@ -159,6 +159,7 @@ class NNCRF(nn.Module):
         """
         if self.dep_model == DepModelType.dglstm:
             if self.pretrain_dep:
+                adj_matrixs = adj_matrixs.to(self.device)
                 dep_emb = self.dep_label_embedding.inference(adj_matrixs, dep_label_tensor)
             else:
                 dep_emb = self.dep_label_embedding(dep_label_tensor)

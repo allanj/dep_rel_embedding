@@ -122,6 +122,7 @@ class Config:
         self.model_folder = args.model_folder
 
 
+        self.complete_tree = args.complete_tree if "complete_tree" in args.__dict__ else 0
         self.interaction_func = InteractionFunction[args.inter_func] ## 0:concat, 1: addition, 2:gcn
         self.pretrain_dep = args.pretrain_dep if "pretrain_dep" in args.__dict__ else 0
         self.freeze = args.freeze if "freeze" in args.__dict__ else 0
