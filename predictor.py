@@ -92,13 +92,13 @@ class Predictor:
         else:
             return predictions
 
-model_path = "model_files/gcn/gcn.tar.gz"
-predictor = Predictor(model_path)
-batch_size = 5
-sent_len = 6
-adj_matrix = torch.randint(0, 2, (batch_size, sent_len, sent_len)).float()
-batch_dep_label = torch.randint(0, 30, (batch_size, sent_len))
-output = predictor.model.inference(adj_matrix, batch_dep_label)
+# model_path = "model_files/gcn/gcn.tar.gz"
+# predictor = Predictor(model_path)
+# batch_size = 5
+# sent_len = 6
+# adj_matrix = torch.randint(0, 2, (batch_size, sent_len, sent_len)).float()
+# batch_dep_label = torch.randint(0, 30, (batch_size, sent_len))
+# output = predictor.model.inference(adj_matrix, batch_dep_label)
 
 # def read_parse_write(elmo: ElmoEmbedder, insts: List[Instance], mode: str = "average") -> None:
 #     """

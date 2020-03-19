@@ -126,6 +126,7 @@ class Config:
         self.interaction_func = InteractionFunction[args.inter_func] ## 0:concat, 1: addition, 2:gcn
         self.pretrain_dep = args.pretrain_dep if "pretrain_dep" in args.__dict__ else 0
         self.freeze = args.freeze if "freeze" in args.__dict__ else 0
+        self.pdep_model = args.pdep_model if "pdep_model" in args.__dict__ else 0
 
     # def print(self):
     #     print("")

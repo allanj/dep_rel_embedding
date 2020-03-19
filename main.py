@@ -78,6 +78,7 @@ def parse_arguments(parser):
 
 
     parser.add_argument('--pretrain_dep', type=int, default=0, choices=[0, 1], help="use pretrained dep model")
+    parser.add_argument('--pdep_model', type=str, default="gcn", help="the path to the pretrained dependency model")
     parser.add_argument('--freeze', type=int, default=0, choices=[0, 1], help="freeze pretrained dep model")
 
     args = parser.parse_args()
@@ -112,7 +113,7 @@ def batching_list_instances(config: Config, insts:List[Instance]):
 def learn_from_insts(config:Config, epoch: int, train_insts, dev_insts, test_insts):
     # train_insts: List[Instance], dev_insts: List[Instance], test_insts: List[Instance], batch_size: int = 1
     if config.pretrain_dep:
-        model_path = "model_files/gcn/gcn.tar.gz"
+        model_path = f"model_files/{config.pdep_model}/{config.pdep_model}.tar.gz"
         predictor = Predictor(model_path)
         model = NNCRF(config, pretrained_dep_model=predictor.model)
     else:
